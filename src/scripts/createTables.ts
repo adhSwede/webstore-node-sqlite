@@ -1,10 +1,6 @@
-import Database from "better-sqlite3";
+import { db } from "../database/db";
 
-const db = new Database("webshop.db", { verbose: console.log });
-
-db.pragma("foreign_keys = ON");
-
-export const createTables = () => {
+const createTables = () => {
   try {
     // Base tables
     db.prepare(
@@ -129,3 +125,5 @@ export const createTables = () => {
     db.close();
   }
 };
+
+createTables();
