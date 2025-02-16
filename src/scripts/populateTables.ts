@@ -1,6 +1,37 @@
 import { db } from "../database/db";
-import productsArray from "./productsArray";
+import productsArray from "./Data/productsArray";
+import customersArray from "./Data/customersArray";
+import addressesArray from "./Data/addressesArray";
 
+// #################### [ Insert Customers ] ####################
+const addCustomer = db.transaction((customer) => {
+  db.prepare(
+    `INSERT INTO Customers (FirstName, LastName, Email, Phone) VALUES (?, ?, ?, ?);`
+  ).run(customer.FirstName, customer.LastName, customer.Email, customer.Phone);
+
+  console.log(`Added Customer: "${customer.FirstName} ${customer.LastName}"`);
+});
+
+customersArray.forEach(addCustomer);
+
+// #################### [ Insert Addresses] ####################
+const addAddress = db.transaction((address) => {
+  db.prepare(
+    `INSERT INTO Addresses (Customer_ID, Street, City, State, ZipCode) VALUES (?, ?, ?, ?, ?);`
+  ).run(
+    address.Customer_ID,
+    address.Street,
+    address.City,
+    address.State,
+    address.ZipCode
+  );
+
+  console.log(`Added Address for Customer ${address.Customer_ID}`);
+});
+
+addressesArray.forEach(addAddress);
+
+// #################### [ Insert Products ] ####################
 const addProduct = db.transaction((product) => {
   // Check if manufacturer exists
   const manufacturerRow = db
@@ -62,4 +93,5 @@ const addProduct = db.transaction((product) => {
   console.log(`Added Product: "${product.name}"`);
 });
 
+// Run the transaction for each product
 productsArray.forEach(addProduct);

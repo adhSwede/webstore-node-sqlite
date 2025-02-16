@@ -51,7 +51,7 @@ const createTables = () => {
         Customer_ID INTEGER,
         Street TEXT,
         City TEXT,
-        Zip TEXT,
+        ZipCode TEXT,
         State TEXT,
         Country TEXT,
         FOREIGN KEY (Customer_ID) REFERENCES Customers(Customer_ID) ON DELETE CASCADE

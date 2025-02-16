@@ -5,14 +5,12 @@ import asyncHandler from "../middleware/asyncHandler";
 /* -------------------------------------------------------------------------- */
 /*                                    GET                                     */
 /* -------------------------------------------------------------------------- */
-// GET all products
 const getProducts: RequestHandler = asyncHandler(async (req, res, next) => {
   const stmt = db.prepare(`SELECT * FROM Products`);
   const products = stmt.all();
   res.json(products);
 });
 
-// GET product by ID
 const getProductById: RequestHandler = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const stmt = db.prepare(`SELECT * FROM Products WHERE Product_ID = ?`);
@@ -25,7 +23,6 @@ const getProductById: RequestHandler = asyncHandler(async (req, res, next) => {
   res.json(product);
 });
 
-// GET products by name (search)
 const getProductsByName: RequestHandler = asyncHandler(
   async (req, res, next) => {
     const searchTerm = req.query.name?.toString() || "";
@@ -41,7 +38,6 @@ const getProductsByName: RequestHandler = asyncHandler(
   }
 );
 
-// GET products by category ID
 const getCategoryById = asyncHandler(async (req, res, next) => {
   const categoryId = parseInt(req.params.catid, 10);
 
@@ -73,7 +69,6 @@ const getCategoryById = asyncHandler(async (req, res, next) => {
 /* -------------------------------------------------------------------------- */
 /*                                    POST                                    */
 /* -------------------------------------------------------------------------- */
-// POST new product
 const postProduct = asyncHandler(async (req, res, next) => {
   const { name, description, price, stock } = req.body;
 
@@ -101,19 +96,16 @@ const postProduct = asyncHandler(async (req, res, next) => {
 /* -------------------------------------------------------------------------- */
 /*                                    PUT                                     */
 /* -------------------------------------------------------------------------- */
-// PUT (Edit) existing product
 const updateProduct = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { price, stock } = req.body;
 
-  // One field needed for update
   if (price === undefined && stock === undefined) {
     return res.status(400).json({
       message: "At least one field (price or stock) must be provided",
     });
   }
 
-  // SQL based on provided info.
   const fields: string[] = [];
   const values: (number | string)[] = [];
 
@@ -149,7 +141,6 @@ const updateProduct = asyncHandler(async (req, res, next) => {
 /* -------------------------------------------------------------------------- */
 /*                                  DELETE                                    */
 /* -------------------------------------------------------------------------- */
-// DELETE product
 const deleteProduct = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
