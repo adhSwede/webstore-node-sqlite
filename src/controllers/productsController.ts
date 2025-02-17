@@ -66,6 +66,27 @@ const getCategoryById = asyncHandler(async (req, res, next) => {
   res.json(result);
 });
 
+const getProductStats: RequestHandler = asyncHandler(async (req, res, next) => {
+  const stmt = db.prepare(`
+    SELECT 
+      c.Name AS Category,
+      COUNT(p.Product_ID) AS ProductCount,
+      ROUND(AVG(p.Price), 2) AS AvgPrice
+    FROM Categories c
+    LEFT JOIN ProductCategories pc ON c.Category_ID = pc.Category_ID
+    LEFT JOIN Products p ON pc.Product_ID = p.Product_ID
+    GROUP BY c.Category_ID;
+  `);
+
+  const stats = stmt.all() as {
+    Category: string;
+    ProductCount: number;
+    AvgPrice: number | null;
+  }[];
+
+  res.json({ ProductStats: stats });
+});
+
 /* -------------------------------------------------------------------------- */
 /*                                    POST                                    */
 /* -------------------------------------------------------------------------- */
@@ -159,6 +180,7 @@ export {
   getProductById,
   getProductsByName,
   getCategoryById,
+  getProductStats,
   postProduct,
   updateProduct,
   deleteProduct,

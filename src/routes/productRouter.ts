@@ -9,6 +9,7 @@ import {
   postProduct,
   updateProduct,
   deleteProduct,
+  getProductStats,
 } from "../controllers/productsController";
 
 /* -------------------------------------------------------------------------- */
@@ -21,6 +22,8 @@ router.get("/search", getProductsByName);
 router.get("/", getProducts);
 
 router.get("/:id", getProductById); // (must be after /search to prevent conflicts)
+
+router.get("/stats", getProductStats);
 
 /* -------------------------------------------------------------------------- */
 /*                                    POST                                    */

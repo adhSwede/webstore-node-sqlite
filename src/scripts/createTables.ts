@@ -1,5 +1,7 @@
 import { db } from "../database/db";
 
+db.exec("PRAGMA foreign_keys = ON;");
+
 const createTables = () => {
   try {
     db.prepare(
