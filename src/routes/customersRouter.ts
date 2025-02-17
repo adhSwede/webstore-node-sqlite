@@ -6,13 +6,22 @@ import {
   getCustomerOrders,
   updateCustomer,
 } from "../controllers/customersController";
+
 /* -------------------------------------------------------------------------- */
 /*                                    GET                                     */
 /* -------------------------------------------------------------------------- */
-router.get("/:id", getCustomerById);
 
+// Get all orders for a specific customer
 router.get("/:id/orders", getCustomerOrders);
 
+// Get customer details
+router.get("/:id", getCustomerById);
+
+/* -------------------------------------------------------------------------- */
+/*                                    PUT                                     */
+/* -------------------------------------------------------------------------- */
+
+// Update customer contact details and address
 router.put("/:id", updateCustomer);
 
 export default router;

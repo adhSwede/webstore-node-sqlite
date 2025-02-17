@@ -8,7 +8,7 @@ interface CustomerOrder {
   LastName: string;
   Email: string;
   Phone: string;
-  Street: string | null; // Address fields (nullable in case there's no address)
+  Street: string | null;
   City: string | null;
   State: string | null;
   ZipCode: string | null;
@@ -18,6 +18,8 @@ interface CustomerOrder {
 /* -------------------------------------------------------------------------- */
 /*                                    GET                                     */
 /* -------------------------------------------------------------------------- */
+
+// Get customer details, including address and order history
 const getCustomerById: RequestHandler = asyncHandler(async (req, res, next) => {
   const id = parseInt(req.params.id, 10);
 
@@ -40,7 +42,7 @@ const getCustomerById: RequestHandler = asyncHandler(async (req, res, next) => {
     FROM Customers c
     LEFT JOIN Addresses a ON c.Customer_ID = a.Customer_ID
     LEFT JOIN Orders o ON c.Customer_ID = o.Customer_ID
-    WHERE c.Customer_ID = ?
+    WHERE c.Customer_ID = ?;
   `);
 
   const results = stmt.all(id) as CustomerOrder[];
@@ -81,6 +83,7 @@ const getCustomerById: RequestHandler = asyncHandler(async (req, res, next) => {
   });
 });
 
+// Get all orders for a specific customer
 const getCustomerOrders: RequestHandler = asyncHandler(
   async (req, res, next) => {
     const id = parseInt(req.params.id, 10);
@@ -96,7 +99,7 @@ const getCustomerOrders: RequestHandler = asyncHandler(
       o.TotalAmount,
       o.Status
     FROM Orders o
-    WHERE o.Customer_ID = ?
+    WHERE o.Customer_ID = ?;
   `);
 
     const orders = stmt.all(id) as {
@@ -120,6 +123,7 @@ const getCustomerOrders: RequestHandler = asyncHandler(
 /*                                    PUT                                     */
 /* -------------------------------------------------------------------------- */
 
+// Update customer contact details and address
 const updateCustomer: RequestHandler = asyncHandler(async (req, res, next) => {
   const id = parseInt(req.params.id, 10);
 
@@ -135,34 +139,56 @@ const updateCustomer: RequestHandler = asyncHandler(async (req, res, next) => {
       .json({ error: "No valid fields provided for update." });
   }
 
-  if (Email || Phone) {
-    db.prepare(
-      `UPDATE Customers 
-       SET Email = COALESCE(?, Email), 
-           Phone = COALESCE(?, Phone) 
-       WHERE Customer_ID = ?;`
-    ).run(Email, Phone, id);
+  const parsedEmail = Email ?? null;
+  const parsedPhone = Phone ?? null;
+  const parsedStreet = Street ?? null;
+  const parsedCity = City ?? null;
+  const parsedState = State ?? null;
+  const parsedZipCode = ZipCode ?? null;
+
+  console.log("Received update request:", req.body);
+
+  if (parsedEmail || parsedPhone) {
+    const result = db
+      .prepare(
+        `UPDATE Customers 
+         SET Email = COALESCE(?, Email), 
+             Phone = COALESCE(?, Phone) 
+         WHERE Customer_ID = ?;`
+      )
+      .run(parsedEmail, parsedPhone, id);
+    console.log("Customer update result:", result);
   }
 
   const addressExists = db
     .prepare(`SELECT * FROM Addresses WHERE Customer_ID = ?`)
     .get(id) as { Customer_ID: number } | undefined;
 
-  if (Street || City || State || ZipCode) {
+  console.log("Address exists?", addressExists);
+
+  if (parsedStreet || parsedCity || parsedState || parsedZipCode) {
     if (addressExists) {
-      db.prepare(
-        `UPDATE Addresses 
-         SET Street = COALESCE(?, Street), 
-             City = COALESCE(?, City), 
-             State = COALESCE(?, State), 
-             ZipCode = COALESCE(?, ZipCode) 
-         WHERE Customer_ID = ?;`
-      ).run(Street, City, State, ZipCode, id);
+      const result = db
+        .prepare(
+          `UPDATE Addresses 
+           SET Street = COALESCE(?, Street), 
+               City = COALESCE(?, City), 
+               State = COALESCE(?, State), 
+               ZipCode = COALESCE(?, ZipCode) 
+           WHERE Customer_ID = ?;`
+        )
+        .run(parsedStreet, parsedCity, parsedState, parsedZipCode, id);
+
+      console.log("Address update result:", result);
     } else {
-      db.prepare(
-        `INSERT INTO Addresses (Customer_ID, Street, City, State, ZipCode) 
-         VALUES (?, ?, ?, ?, ?);`
-      ).run(id, Street, City, State, ZipCode);
+      const result = db
+        .prepare(
+          `INSERT INTO Addresses (Customer_ID, Street, City, State, ZipCode) 
+           VALUES (?, ?, ?, ?, ?);`
+        )
+        .run(id, parsedStreet, parsedCity, parsedState, parsedZipCode);
+
+      console.log("New address insert result:", result);
     }
   }
 

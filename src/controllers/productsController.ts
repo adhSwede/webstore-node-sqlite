@@ -5,12 +5,15 @@ import asyncHandler from "../middleware/asyncHandler";
 /* -------------------------------------------------------------------------- */
 /*                                    GET                                     */
 /* -------------------------------------------------------------------------- */
+
+// Get all products
 const getProducts: RequestHandler = asyncHandler(async (req, res, next) => {
   const stmt = db.prepare(`SELECT * FROM Products`);
   const products = stmt.all();
   res.json(products);
 });
 
+// Get a single product by ID
 const getProductById: RequestHandler = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const stmt = db.prepare(`SELECT * FROM Products WHERE Product_ID = ?`);
@@ -23,6 +26,7 @@ const getProductById: RequestHandler = asyncHandler(async (req, res, next) => {
   res.json(product);
 });
 
+// Search for products by name
 const getProductsByName: RequestHandler = asyncHandler(
   async (req, res, next) => {
     const searchTerm = req.query.name?.toString() || "";
@@ -38,58 +42,11 @@ const getProductsByName: RequestHandler = asyncHandler(
   }
 );
 
-const getCategoryById = asyncHandler(async (req, res, next) => {
-  const categoryId = parseInt(req.params.catid, 10);
-
-  if (isNaN(categoryId)) {
-    return res.status(400).json({ message: "Invalid category ID" });
-  }
-
-  const stmt = db.prepare(`
-    SELECT 
-      c.Category_ID, 
-      c.Name, 
-      p.Product_ID, 
-      p.Name 
-    FROM Categories c
-    LEFT JOIN ProductCategories pc ON c.Category_ID = pc.Category_ID
-    LEFT JOIN Products p ON pc.Product_ID = p.Product_ID
-    WHERE c.Category_ID = ?;
-  `);
-
-  const result = stmt.all(categoryId);
-
-  if (result.length === 0) {
-    return res.status(404).json({ message: "Category not found" });
-  }
-
-  res.json(result);
-});
-
-const getProductStats: RequestHandler = asyncHandler(async (req, res, next) => {
-  const stmt = db.prepare(`
-    SELECT 
-      c.Name AS Category,
-      COUNT(p.Product_ID) AS ProductCount,
-      ROUND(AVG(p.Price), 2) AS AvgPrice
-    FROM Categories c
-    LEFT JOIN ProductCategories pc ON c.Category_ID = pc.Category_ID
-    LEFT JOIN Products p ON pc.Product_ID = p.Product_ID
-    GROUP BY c.Category_ID;
-  `);
-
-  const stats = stmt.all() as {
-    Category: string;
-    ProductCount: number;
-    AvgPrice: number | null;
-  }[];
-
-  res.json({ ProductStats: stats });
-});
-
 /* -------------------------------------------------------------------------- */
 /*                                    POST                                    */
 /* -------------------------------------------------------------------------- */
+
+// Add a new product
 const postProduct = asyncHandler(async (req, res, next) => {
   const { name, description, price, stock } = req.body;
 
@@ -117,6 +74,8 @@ const postProduct = asyncHandler(async (req, res, next) => {
 /* -------------------------------------------------------------------------- */
 /*                                    PUT                                     */
 /* -------------------------------------------------------------------------- */
+
+// Update product price or stock
 const updateProduct = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { price, stock } = req.body;
@@ -127,16 +86,19 @@ const updateProduct = asyncHandler(async (req, res, next) => {
     });
   }
 
+  const parsedPrice = price !== undefined ? Number(price) : undefined;
+  const parsedStock = stock !== undefined ? Number(stock) : undefined;
+
   const fields: string[] = [];
   const values: (number | string)[] = [];
 
-  if (price !== undefined) {
+  if (parsedPrice !== undefined) {
     fields.push("Price = ?");
-    values.push(price);
+    values.push(parsedPrice);
   }
-  if (stock !== undefined) {
+  if (parsedStock !== undefined) {
     fields.push("Stock = ?");
-    values.push(stock);
+    values.push(parsedStock);
   }
 
   values.push(id);
@@ -144,7 +106,7 @@ const updateProduct = asyncHandler(async (req, res, next) => {
   const sql = `
     UPDATE Products
     SET ${fields.join(", ")}
-    WHERE Product_ID = ?
+    WHERE Product_ID = ?;
   `;
 
   const stmt = db.prepare(sql);
@@ -162,6 +124,8 @@ const updateProduct = asyncHandler(async (req, res, next) => {
 /* -------------------------------------------------------------------------- */
 /*                                  DELETE                                    */
 /* -------------------------------------------------------------------------- */
+
+// Delete a product by ID
 const deleteProduct = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
@@ -179,8 +143,6 @@ export {
   getProducts,
   getProductById,
   getProductsByName,
-  getCategoryById,
-  getProductStats,
   postProduct,
   updateProduct,
   deleteProduct,
