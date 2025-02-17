@@ -1,95 +1,119 @@
 import { db } from "../database/db";
 
+// Enable foreign key constraints
+db.exec("PRAGMA foreign_keys = ON;");
+
+// Function to execute SQL safely
+const executeSQL = (query: string) => {
+  try {
+    db.prepare(query).run();
+  } catch (err) {
+    console.error("Error executing query:", err);
+  }
+};
+
 const createTables = () => {
   try {
-    db.prepare(
-      `CREATE TABLE IF NOT EXISTS Customers (
+    // Customers table
+    executeSQL(`
+      CREATE TABLE IF NOT EXISTS Customers (
         Customer_ID INTEGER PRIMARY KEY AUTOINCREMENT,
         FirstName TEXT,
         LastName TEXT,
         Email TEXT UNIQUE,
         Phone TEXT CHECK (Phone GLOB '[0-9]*' AND LENGTH(Phone) BETWEEN 7 AND 15)
-      )`
-    ).run();
+      );
+    `);
 
-    db.prepare(
-      `CREATE TABLE IF NOT EXISTS Products (
-        Product_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        Name TEXT,
-        Description TEXT,
-        Price NUMERIC CHECK (Price > 0),
-        Stock INTEGER
-      )`
-    ).run();
-
-    db.prepare(
-      `CREATE INDEX IF NOT EXISTS idx_products_name ON Products(Name);`
-    ).run();
-    db.prepare(
-      `CREATE INDEX IF NOT EXISTS idx_products_description ON Products(Description);`
-    ).run();
-
-    db.prepare(
-      `CREATE TABLE IF NOT EXISTS Categories (
-        Category_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        Name TEXT,
-        Description TEXT
-      )`
-    ).run();
-
-    db.prepare(
-      `CREATE TABLE IF NOT EXISTS Manufacturers (
-        Manufacturer_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        Name TEXT,
-        Description TEXT
-      )`
-    ).run();
-
-    db.prepare(
-      `CREATE TABLE IF NOT EXISTS Addresses (
+    // Addresses table (linked to Customers)
+    executeSQL(`
+      CREATE TABLE IF NOT EXISTS Addresses (
         Address_ID INTEGER PRIMARY KEY AUTOINCREMENT,
         Customer_ID INTEGER,
         Street TEXT,
         City TEXT,
-        Zip TEXT,
+        ZipCode TEXT,
         State TEXT,
         Country TEXT,
         FOREIGN KEY (Customer_ID) REFERENCES Customers(Customer_ID) ON DELETE CASCADE
-      )`
-    ).run();
+      );
+    `);
 
-    db.prepare(
-      `CREATE TABLE IF NOT EXISTS Orders (
+    // Orders table (linked to Customers & Addresses)
+    executeSQL(`
+      CREATE TABLE IF NOT EXISTS Orders (
         Order_ID INTEGER PRIMARY KEY AUTOINCREMENT,
         Customer_ID INTEGER,
         Address_ID INTEGER,
+        OrderDate TEXT DEFAULT (DATE('now')),
+        TotalAmount REAL DEFAULT 0,
+        Status TEXT DEFAULT 'Pending',
         FOREIGN KEY (Customer_ID) REFERENCES Customers(Customer_ID) ON DELETE CASCADE,
         FOREIGN KEY (Address_ID) REFERENCES Addresses(Address_ID) ON DELETE CASCADE
-      )`
-    ).run();
+      );
+    `);
 
-    db.prepare(
-      `CREATE TABLE IF NOT EXISTS ProductCategories (
+    // Products table
+    executeSQL(`
+      CREATE TABLE IF NOT EXISTS Products (
+        Product_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        Name TEXT,
+        Description TEXT,
+        Price REAL CHECK (Price > 0),
+        Stock INTEGER
+      );
+    `);
+
+    executeSQL(
+      `CREATE INDEX IF NOT EXISTS idx_products_name ON Products(Name);`
+    );
+    executeSQL(
+      `CREATE INDEX IF NOT EXISTS idx_products_description ON Products(Description);`
+    );
+
+    // Categories table
+    executeSQL(`
+      CREATE TABLE IF NOT EXISTS Categories (
+        Category_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        Name TEXT,
+        Description TEXT
+      );
+    `);
+
+    // Manufacturers table
+    executeSQL(`
+      CREATE TABLE IF NOT EXISTS Manufacturers (
+        Manufacturer_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        Name TEXT,
+        Description TEXT
+      );
+    `);
+
+    // ProductCategories (Many-to-Many: Products ↔ Categories)
+    executeSQL(`
+      CREATE TABLE IF NOT EXISTS ProductCategories (
         Product_ID INTEGER,
         Category_ID INTEGER,
         PRIMARY KEY (Product_ID, Category_ID),
         FOREIGN KEY (Product_ID) REFERENCES Products(Product_ID) ON DELETE CASCADE,
         FOREIGN KEY (Category_ID) REFERENCES Categories(Category_ID) ON UPDATE CASCADE
-      )`
-    ).run();
+      );
+    `);
 
-    db.prepare(
-      `CREATE TABLE IF NOT EXISTS ProductManufacturers (
+    // ProductManufacturers (Many-to-Many: Products ↔ Manufacturers)
+    executeSQL(`
+      CREATE TABLE IF NOT EXISTS ProductManufacturers (
         Product_ID INTEGER,
         Manufacturer_ID INTEGER,
         PRIMARY KEY (Product_ID, Manufacturer_ID),
         FOREIGN KEY (Product_ID) REFERENCES Products(Product_ID) ON DELETE CASCADE,
         FOREIGN KEY (Manufacturer_ID) REFERENCES Manufacturers(Manufacturer_ID)
-      )`
-    ).run();
+      );
+    `);
 
-    db.prepare(
-      `CREATE TABLE IF NOT EXISTS OrderDetails (
+    // OrderDetails (Many-to-Many: Orders ↔ Products)
+    executeSQL(`
+      CREATE TABLE IF NOT EXISTS OrderDetails (
         Order_ID INTEGER,
         Product_ID INTEGER,
         Quantity INTEGER,
@@ -99,11 +123,12 @@ const createTables = () => {
         PRIMARY KEY (Order_ID, Product_ID),
         FOREIGN KEY (Order_ID) REFERENCES Orders(Order_ID),
         FOREIGN KEY (Product_ID) REFERENCES Products(Product_ID) ON DELETE CASCADE
-      )`
-    ).run();
+      );
+    `);
 
-    db.prepare(
-      `CREATE TABLE IF NOT EXISTS Reviews (
+    // Reviews (linked to Customers, Products, and Orders)
+    executeSQL(`
+      CREATE TABLE IF NOT EXISTS Reviews (
         Review_ID INTEGER PRIMARY KEY AUTOINCREMENT,
         Customer_ID INTEGER,
         Product_ID INTEGER,
@@ -113,8 +138,8 @@ const createTables = () => {
         FOREIGN KEY (Customer_ID) REFERENCES Customers(Customer_ID),
         FOREIGN KEY (Product_ID) REFERENCES Products(Product_ID) ON DELETE CASCADE,
         FOREIGN KEY (Order_ID) REFERENCES Orders(Order_ID)
-      )`
-    ).run();
+      );
+    `);
 
     console.log("Tables created successfully!");
   } catch (err) {

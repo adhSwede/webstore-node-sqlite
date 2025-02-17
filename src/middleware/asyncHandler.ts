@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 
 /**
- * A wrapper function that catches async errors and infers types automatically.
+ * Middleware to handle async errors in Express routes.
+ * Automatically catches errors and passes them to Express error handling.
  */
 const asyncHandler = <
   Req extends Request = Request,

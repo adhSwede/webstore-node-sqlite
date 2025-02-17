@@ -5,7 +5,6 @@ import {
   getProducts,
   getProductById,
   getProductsByName,
-  getCategoryById,
   postProduct,
   updateProduct,
   deleteProduct,
@@ -14,34 +13,35 @@ import {
 /* -------------------------------------------------------------------------- */
 /*                                    GET                                     */
 /* -------------------------------------------------------------------------- */
-// GET products by category ID
-router.get("/category/:catid", getCategoryById);
 
-// GET (query param ?name=macbook)
+// Search should be above `/:id` to prevent conflicts
 router.get("/search", getProductsByName);
 
-// GET all products
+// Get all products (must be before `/:id`)
 router.get("/", getProducts);
 
-// GET single product by ID (must be after /search to prevent conflicts)
+// Get product by ID (should always be last among GET routes)
 router.get("/:id", getProductById);
 
 /* -------------------------------------------------------------------------- */
 /*                                    POST                                    */
 /* -------------------------------------------------------------------------- */
-// POST new product
+
+// Add a new product
 router.post("/", postProduct);
 
 /* -------------------------------------------------------------------------- */
 /*                                    PUT                                     */
 /* -------------------------------------------------------------------------- */
-// PUT (Edit) existing product
+
+// Update a specific product by ID
 router.put("/:id", updateProduct);
 
 /* -------------------------------------------------------------------------- */
 /*                                  DELETE                                    */
 /* -------------------------------------------------------------------------- */
-// DELETE product
+
+// Delete a specific product by ID
 router.delete("/:id", deleteProduct);
 
 export default router;
