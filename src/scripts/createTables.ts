@@ -3,7 +3,7 @@ import { db } from "../database/db";
 // Enable foreign key constraints
 db.exec("PRAGMA foreign_keys = ON;");
 
-// Function to execute SQL safely
+// Executes SQL queries safely
 const executeSQL = (query: string) => {
   try {
     db.prepare(query).run();
@@ -14,7 +14,7 @@ const executeSQL = (query: string) => {
 
 const createTables = () => {
   try {
-    // Customers table
+    // Customers & Addresses
     executeSQL(`
       CREATE TABLE IF NOT EXISTS Customers (
         Customer_ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,7 +25,6 @@ const createTables = () => {
       );
     `);
 
-    // Addresses table (linked to Customers)
     executeSQL(`
       CREATE TABLE IF NOT EXISTS Addresses (
         Address_ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -39,7 +38,7 @@ const createTables = () => {
       );
     `);
 
-    // Orders table (linked to Customers & Addresses)
+    // Orders
     executeSQL(`
       CREATE TABLE IF NOT EXISTS Orders (
         Order_ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,7 +52,7 @@ const createTables = () => {
       );
     `);
 
-    // Products table
+    // Products, Categories & Manufacturers
     executeSQL(`
       CREATE TABLE IF NOT EXISTS Products (
         Product_ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,7 +70,6 @@ const createTables = () => {
       `CREATE INDEX IF NOT EXISTS idx_products_description ON Products(Description);`
     );
 
-    // Categories table
     executeSQL(`
       CREATE TABLE IF NOT EXISTS Categories (
         Category_ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,7 +78,6 @@ const createTables = () => {
       );
     `);
 
-    // Manufacturers table
     executeSQL(`
       CREATE TABLE IF NOT EXISTS Manufacturers (
         Manufacturer_ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -89,7 +86,7 @@ const createTables = () => {
       );
     `);
 
-    // ProductCategories (Many-to-Many: Products ↔ Categories)
+    // Many-to-Many Relationships
     executeSQL(`
       CREATE TABLE IF NOT EXISTS ProductCategories (
         Product_ID INTEGER,
@@ -100,7 +97,6 @@ const createTables = () => {
       );
     `);
 
-    // ProductManufacturers (Many-to-Many: Products ↔ Manufacturers)
     executeSQL(`
       CREATE TABLE IF NOT EXISTS ProductManufacturers (
         Product_ID INTEGER,
@@ -111,7 +107,6 @@ const createTables = () => {
       );
     `);
 
-    // OrderDetails (Many-to-Many: Orders ↔ Products)
     executeSQL(`
       CREATE TABLE IF NOT EXISTS OrderDetails (
         Order_ID INTEGER,
@@ -126,7 +121,7 @@ const createTables = () => {
       );
     `);
 
-    // Reviews (linked to Customers, Products, and Orders)
+    // Reviews
     executeSQL(`
       CREATE TABLE IF NOT EXISTS Reviews (
         Review_ID INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -14,34 +14,26 @@ import {
 /*                                    GET                                     */
 /* -------------------------------------------------------------------------- */
 
-// Search should be above `/:id` to prevent conflicts
-router.get("/search", getProductsByName);
-
-// Get all products (must be before `/:id`)
-router.get("/", getProducts);
-
-// Get product by ID (should always be last among GET routes)
-router.get("/:id", getProductById);
+router.get("/", getProducts); // Supports filtering via query parameters
+router.get("/search", getProductsByName); // Search route must come before `/:id`
+router.get("/:id", getProductById); // Get product by ID
 
 /* -------------------------------------------------------------------------- */
 /*                                    POST                                    */
 /* -------------------------------------------------------------------------- */
 
-// Add a new product
-router.post("/", postProduct);
+router.post("/", postProduct); // Add a new product
 
 /* -------------------------------------------------------------------------- */
 /*                                    PUT                                     */
 /* -------------------------------------------------------------------------- */
 
-// Update a specific product by ID
-router.put("/:id", updateProduct);
+router.put("/:id", updateProduct); // Update product by ID
 
 /* -------------------------------------------------------------------------- */
 /*                                  DELETE                                    */
 /* -------------------------------------------------------------------------- */
 
-// Delete a specific product by ID
-router.delete("/:id", deleteProduct);
+router.delete("/:id", deleteProduct); // Delete product by ID
 
 export default router;

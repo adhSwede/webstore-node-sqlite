@@ -6,7 +6,7 @@ import ordersArray from "./Data/ordersArray";
 import orderDetailsArray from "./Data/orderDetailsArray";
 import reviewsArray from "./Data/reviewsArray";
 
-// Function to execute insert operations inside a transaction
+// Executes insert queries inside a transaction
 const insertData = (query: string, params: any[], logMessage: string) => {
   try {
     db.prepare(query).run(...params);
@@ -50,7 +50,7 @@ addressesArray.forEach(addAddress);
 /*                                Insert Products                             */
 /* -------------------------------------------------------------------------- */
 const addProduct = db.transaction((product) => {
-  // Get Manufacturer ID
+  // Get or create Manufacturer ID
   let manufacturerId = db
     .prepare(`SELECT Manufacturer_ID FROM Manufacturers WHERE Name = ?;`)
     .get(product.manufacturer) as { Manufacturer_ID: number } | undefined;
@@ -63,7 +63,7 @@ const addProduct = db.transaction((product) => {
       .get(product.manufacturer) as { Manufacturer_ID: number } | undefined;
   }
 
-  // Get Category ID
+  // Get or create Category ID
   let categoryId = db
     .prepare(`SELECT Category_ID FROM Categories WHERE Name = ?;`)
     .get(product.category) as { Category_ID: number } | undefined;
@@ -111,7 +111,7 @@ const addOrder = db.transaction((order) => {
   const result = db
     .prepare(
       `INSERT INTO Orders (Customer_ID, Address_ID, OrderDate, TotalAmount, Status) 
-       VALUES (?, ?, ?, ?, ?) RETURNING Order_ID;`
+     VALUES (?, ?, ?, ?, ?) RETURNING Order_ID;`
     )
     .get(
       order.Customer_ID,
