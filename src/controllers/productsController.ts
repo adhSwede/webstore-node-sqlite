@@ -6,39 +6,52 @@ import asyncHandler from "../middleware/asyncHandler";
 /*                                    GET                                     */
 /* -------------------------------------------------------------------------- */
 
-// Get all products
 const getProducts: RequestHandler = asyncHandler(async (req, res, next) => {
-  const stmt = db.prepare(`SELECT * FROM Products`);
-  const products = stmt.all();
-  res.json(products);
-});
+  let query = `SELECT * FROM Products WHERE 1=1`;
+  const values: any[] = [];
 
-// Get a single product by ID
-const getProductById: RequestHandler = asyncHandler(async (req, res, next) => {
-  const { id } = req.params;
-  const stmt = db.prepare(`SELECT * FROM Products WHERE Product_ID = ?`);
-  const product = stmt.get(Number(id));
+  // Parse and validate query parameters
+  const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
+  const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
 
-  if (!product) {
-    return res.status(404).json({ error: "Product not found." });
+  if (minPrice !== null && isNaN(minPrice))
+    throw Object.assign(new Error("Invalid minPrice"), { status: 400 });
+  if (maxPrice !== null && isNaN(maxPrice))
+    throw Object.assign(new Error("Invalid maxPrice"), { status: 400 });
+
+  // Apply filters if provided
+  if (minPrice !== null) {
+    query += " AND Price >= ?";
+    values.push(minPrice);
+  }
+  if (maxPrice !== null) {
+    query += " AND Price <= ?";
+    values.push(maxPrice);
   }
 
+  const stmt = db.prepare(query);
+  res.json(stmt.all(...values));
+});
+
+const getProductById: RequestHandler = asyncHandler(async (req, res, next) => {
+  const stmt = db.prepare(`SELECT * FROM Products WHERE Product_ID = ?`);
+  const product = stmt.get(Number(req.params.id));
+
+  if (!product)
+    throw Object.assign(new Error("Product not found"), { status: 404 }); // No match found
   res.json(product);
 });
 
-// Search for products by name
 const getProductsByName: RequestHandler = asyncHandler(
   async (req, res, next) => {
     const searchTerm = req.query.name?.toString() || "";
-
-    if (!searchTerm) {
-      return res.status(400).json({ error: "Search term is required." });
-    }
+    if (!searchTerm)
+      throw Object.assign(new Error("Search term is required"), {
+        status: 400,
+      });
 
     const stmt = db.prepare(`SELECT * FROM Products WHERE Name LIKE ?`);
-    const products = stmt.all(`%${searchTerm}%`);
-
-    res.json(products);
+    res.json(stmt.all(`%${searchTerm}%`));
   }
 );
 
@@ -46,12 +59,10 @@ const getProductsByName: RequestHandler = asyncHandler(
 /*                                    POST                                    */
 /* -------------------------------------------------------------------------- */
 
-// Add a new product
 const postProduct = asyncHandler(async (req, res, next) => {
   const { name, description, price, stock } = req.body;
-
   if (!name || !description || price === undefined || stock === undefined) {
-    return res.status(400).json({ message: "All fields are required" });
+    throw Object.assign(new Error("All fields are required"), { status: 400 });
   }
 
   const stmt = db.prepare(`
@@ -60,63 +71,61 @@ const postProduct = asyncHandler(async (req, res, next) => {
   `);
 
   const result = stmt.run(name, description, price, stock);
+  if (result.changes === 0)
+    throw Object.assign(new Error("Failed to insert product"), { status: 500 });
 
-  if (result.changes === 0) {
-    return res.status(500).json({ message: "Failed to insert product" });
-  }
-
-  res.status(201).json({
-    message: "Product created successfully",
-    product: { id: result.lastInsertRowid, name, description, price, stock },
-  });
+  res
+    .status(201)
+    .json({
+      message: "Product created",
+      product: { id: result.lastInsertRowid, name, description, price, stock },
+    });
 });
 
 /* -------------------------------------------------------------------------- */
 /*                                    PUT                                     */
 /* -------------------------------------------------------------------------- */
 
-// Update product price or stock
 const updateProduct = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { price, stock } = req.body;
 
   if (price === undefined && stock === undefined) {
-    return res.status(400).json({
-      message: "At least one field (price or stock) must be provided",
-    });
+    throw Object.assign(
+      new Error("At least one field required (price or stock)"),
+      { status: 400 }
+    );
   }
 
-  const parsedPrice = price !== undefined ? Number(price) : undefined;
-  const parsedStock = stock !== undefined ? Number(stock) : undefined;
-
+  // Prepare update statement dynamically
   const fields: string[] = [];
   const values: (number | string)[] = [];
 
-  if (parsedPrice !== undefined) {
+  if (price !== undefined) {
+    const parsedPrice = Number(price);
+    if (isNaN(parsedPrice))
+      throw Object.assign(new Error("Invalid price"), { status: 400 });
     fields.push("Price = ?");
     values.push(parsedPrice);
   }
-  if (parsedStock !== undefined) {
+
+  if (stock !== undefined) {
+    const parsedStock = Number(stock);
+    if (isNaN(parsedStock))
+      throw Object.assign(new Error("Invalid stock"), { status: 400 });
     fields.push("Stock = ?");
     values.push(parsedStock);
   }
 
   values.push(id);
-
-  const sql = `
-    UPDATE Products
-    SET ${fields.join(", ")}
-    WHERE Product_ID = ?;
-  `;
+  const sql = `UPDATE Products SET ${fields.join(", ")} WHERE Product_ID = ?;`;
 
   const stmt = db.prepare(sql);
   const result = stmt.run(...values);
-
-  if (result.changes === 0) {
-    return res
-      .status(404)
-      .json({ message: "Product not found or no changes made" });
-  }
+  if (result.changes === 0)
+    throw Object.assign(new Error("Product not found or no changes made"), {
+      status: 404,
+    });
 
   res.json({ message: "Product updated successfully" });
 });
@@ -125,17 +134,12 @@ const updateProduct = asyncHandler(async (req, res, next) => {
 /*                                  DELETE                                    */
 /* -------------------------------------------------------------------------- */
 
-// Delete a product by ID
 const deleteProduct = asyncHandler(async (req, res, next) => {
-  const { id } = req.params;
-
   const stmt = db.prepare(`DELETE FROM Products WHERE Product_ID = ?`);
-  const result = stmt.run(id);
+  const result = stmt.run(req.params.id);
 
-  if (result.changes === 0) {
-    return res.status(404).json({ message: "Product not found" });
-  }
-
+  if (result.changes === 0)
+    throw Object.assign(new Error("Product not found"), { status: 404 }); // No match found
   res.json({ message: "Product deleted successfully" });
 });
 

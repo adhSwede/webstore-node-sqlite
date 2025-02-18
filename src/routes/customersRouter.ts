@@ -11,17 +11,13 @@ import {
 /*                                    GET                                     */
 /* -------------------------------------------------------------------------- */
 
-// Get all orders for a specific customer
-router.get("/:id/orders", getCustomerOrders);
-
-// Get customer details
-router.get("/:id", getCustomerById);
+router.get("/:id/orders", getCustomerOrders); // Get all orders for a customer
+router.get("/:id", getCustomerById); // Get customer details
 
 /* -------------------------------------------------------------------------- */
 /*                                    PUT                                     */
 /* -------------------------------------------------------------------------- */
 
-// Update customer contact details and address
-router.put("/:id", updateCustomer);
+router.put("/:id", updateCustomer); // Update contact details and address
 
 export default router;

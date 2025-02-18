@@ -7,7 +7,6 @@ import { getReviewStats } from "../controllers/reviewsController";
 /*                                    GET                                     */
 /* -------------------------------------------------------------------------- */
 
-// Get average rating per product
-router.get("/stats", getReviewStats);
+router.get("/stats", getReviewStats); // Get average rating per product
 
 export default router;

@@ -11,17 +11,13 @@ import {
 /*                                    GET                                     */
 /* -------------------------------------------------------------------------- */
 
-// Get category-based product statistics
-router.get("/stats", getCategoryStats);
-
-// Get category details
-router.get("/:id", getCategoryById);
+router.get("/stats", getCategoryStats); // Category-based product stats
+router.get("/:id", getCategoryById); // Get category details
 
 /* -------------------------------------------------------------------------- */
 /*                                    PUT                                     */
 /* -------------------------------------------------------------------------- */
 
-// Update category name or ID (triggers CASCADE UPDATE)
-router.put("/:id", updateCategory);
+router.put("/:id", updateCategory); // Update category (CASCADE UPDATE enabled)
 
 export default router;
