@@ -3,20 +3,23 @@ import { db } from "../database/db";
 import asyncHandler from "../middleware/asyncHandler";
 
 /* -------------------------------------------------------------------------- */
+/*                                Utility Function                            */
+/* -------------------------------------------------------------------------- */
+
+const handleDBError = (condition: boolean, message: string, status: number) => {
+  if (condition) throw Object.assign(new Error(message), { status });
+};
+
+/* -------------------------------------------------------------------------- */
 /*                                    GET                                     */
 /* -------------------------------------------------------------------------- */
 
-const getCategoryById: RequestHandler = asyncHandler(async (req, res, next) => {
+const getCategoryById: RequestHandler = asyncHandler(async (req, res) => {
   const categoryId = parseInt(req.params.id, 10);
-  if (isNaN(categoryId))
-    throw Object.assign(new Error("Invalid category ID"), { status: 400 });
+  handleDBError(isNaN(categoryId), "Invalid category ID", 400);
 
   const stmt = db.prepare(`
-    SELECT 
-      c.Category_ID, 
-      c.Name AS CategoryName, 
-      p.Product_ID, 
-      p.Name AS ProductName
+    SELECT c.Category_ID, c.Name, p.Product_ID, p.Name AS ProductName
     FROM Categories c
     LEFT JOIN ProductCategories pc ON c.Category_ID = pc.Category_ID
     LEFT JOIN Products p ON pc.Product_ID = p.Product_ID
@@ -24,61 +27,57 @@ const getCategoryById: RequestHandler = asyncHandler(async (req, res, next) => {
   `);
 
   const result = stmt.all(categoryId);
-  if (result.length === 0)
-    throw Object.assign(new Error("Category not found"), { status: 404 }); // If no rows, category doesn't exist
+  handleDBError(result.length === 0, "Category not found", 404);
 
   res.json(result);
 });
 
-const getCategoryStats: RequestHandler = asyncHandler(
-  async (req, res, next) => {
-    const stmt = db.prepare(`
-    SELECT 
-      c.Name AS Category, 
-      COUNT(p.Product_ID) AS ProductCount, 
-      ROUND(AVG(p.Price), 2) AS AvgPrice
+const getCategoryStats: RequestHandler = asyncHandler(async (_, res) => {
+  const stats = db
+    .prepare(
+      `
+    SELECT c.Name AS Category, COUNT(p.Product_ID) AS ProductCount, ROUND(AVG(p.Price), 2) AS AvgPrice
     FROM Categories c
     LEFT JOIN ProductCategories pc ON c.Category_ID = pc.Category_ID
     LEFT JOIN Products p ON pc.Product_ID = p.Product_ID
     GROUP BY c.Category_ID;
-  `);
+  `
+    )
+    .all();
 
-    const stats = stmt.all();
-    res.json({ CategoryStats: stats }); // AVG(p.Price) may return NULL if no products
-  }
-);
+  res.json({ CategoryStats: stats });
+});
 
 /* -------------------------------------------------------------------------- */
 /*                                    PUT                                     */
 /* -------------------------------------------------------------------------- */
 
-const updateCategory: RequestHandler = asyncHandler(async (req, res, next) => {
+const updateCategory: RequestHandler = asyncHandler(async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const { Category_ID, Name } = req.body;
 
-  if (isNaN(id))
-    throw Object.assign(new Error("Invalid category ID."), { status: 400 });
-  if (Category_ID === undefined && !Name)
-    throw Object.assign(new Error("No valid fields provided."), {
-      status: 400,
-    });
+  handleDBError(isNaN(id), "Invalid category ID", 400);
+  handleDBError(
+    Category_ID === undefined && !Name,
+    "No valid fields provided",
+    400
+  );
 
   const result = db
     .prepare(
       `
     UPDATE Categories 
-    SET 
-      Category_ID = COALESCE(?, Category_ID),
-      Name = COALESCE(?, Name)
+    SET Category_ID = COALESCE(?, Category_ID), Name = COALESCE(?, Name)
     WHERE Category_ID = ?;
   `
     )
     .run(Category_ID, Name, id);
 
-  if (result.changes === 0)
-    throw Object.assign(new Error("Category not found or no changes made."), {
-      status: 404,
-    }); // No update, either missing or unchanged
+  handleDBError(
+    result.changes === 0,
+    "Category not found or no changes made",
+    404
+  );
 
   res.json({ message: "Category updated successfully." });
 });
