@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 
-/**
- * Centralized error handler for consistent API responses.
- */
+// Centralized error handler for consistent API responses.
 const errorHandler = (
   err: any,
   req: Request,

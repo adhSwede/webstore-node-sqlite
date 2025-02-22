@@ -3,23 +3,27 @@ import { db } from "../database/db";
 import asyncHandler from "../middleware/asyncHandler";
 
 /* -------------------------------------------------------------------------- */
+/*                                Utility Function                            */
+/* -------------------------------------------------------------------------- */
+
+const handleDBError = (condition: boolean, message: string, status: number) => {
+  if (condition) throw Object.assign(new Error(message), { status });
+};
+
+/* -------------------------------------------------------------------------- */
 /*                                    GET                                     */
 /* -------------------------------------------------------------------------- */
 
-const getProducts: RequestHandler = asyncHandler(async (req, res, next) => {
+const getProducts: RequestHandler = asyncHandler(async (req, res) => {
   let query = `SELECT * FROM Products WHERE 1=1`;
   const values: any[] = [];
 
-  // Parse and validate query parameters
   const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
   const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
 
-  if (minPrice !== null && isNaN(minPrice))
-    throw Object.assign(new Error("Invalid minPrice"), { status: 400 });
-  if (maxPrice !== null && isNaN(maxPrice))
-    throw Object.assign(new Error("Invalid maxPrice"), { status: 400 });
+  handleDBError(minPrice !== null && isNaN(minPrice), "Invalid minPrice", 400);
+  handleDBError(maxPrice !== null && isNaN(maxPrice), "Invalid maxPrice", 400);
 
-  // Apply filters if provided
   if (minPrice !== null) {
     query += " AND Price >= ?";
     values.push(minPrice);
@@ -29,103 +33,97 @@ const getProducts: RequestHandler = asyncHandler(async (req, res, next) => {
     values.push(maxPrice);
   }
 
-  const stmt = db.prepare(query);
-  res.json(stmt.all(...values));
+  res.json(db.prepare(query).all(...values));
 });
 
-const getProductById: RequestHandler = asyncHandler(async (req, res, next) => {
-  const stmt = db.prepare(`SELECT * FROM Products WHERE Product_ID = ?`);
-  const product = stmt.get(Number(req.params.id));
+const getProductById: RequestHandler = asyncHandler(async (req, res) => {
+  const product = db
+    .prepare(`SELECT * FROM Products WHERE Product_ID = ?`)
+    .get(Number(req.params.id));
 
-  if (!product)
-    throw Object.assign(new Error("Product not found"), { status: 404 }); // No match found
+  handleDBError(!product, "Product not found", 404);
   res.json(product);
 });
 
-const getProductsByName: RequestHandler = asyncHandler(
-  async (req, res, next) => {
-    const searchTerm = req.query.name?.toString() || "";
-    if (!searchTerm)
-      throw Object.assign(new Error("Search term is required"), {
-        status: 400,
-      });
+const getProductsByName: RequestHandler = asyncHandler(async (req, res) => {
+  const searchTerm = req.query.name?.toString() || "";
+  handleDBError(!searchTerm, "Search term is required", 400);
 
-    const stmt = db.prepare(`SELECT * FROM Products WHERE Name LIKE ?`);
-    res.json(stmt.all(`%${searchTerm}%`));
-  }
-);
+  res.json(
+    db
+      .prepare(`SELECT * FROM Products WHERE Name LIKE ?`)
+      .all(`%${searchTerm}%`)
+  );
+});
 
 /* -------------------------------------------------------------------------- */
 /*                                    POST                                    */
 /* -------------------------------------------------------------------------- */
 
-const postProduct = asyncHandler(async (req, res, next) => {
+const postProduct: RequestHandler = asyncHandler(async (req, res) => {
   const { name, description, price, stock } = req.body;
-  if (!name || !description || price === undefined || stock === undefined) {
-    throw Object.assign(new Error("All fields are required"), { status: 400 });
-  }
+  handleDBError(
+    !name || !description || price === undefined || stock === undefined,
+    "All fields are required",
+    400
+  );
 
-  const stmt = db.prepare(`
-    INSERT INTO Products (Name, Description, Price, Stock)
-    VALUES (?, ?, ?, ?)
-  `);
+  const result = db
+    .prepare(
+      `
+    INSERT INTO Products (Name, Description, Price, Stock) VALUES (?, ?, ?, ?)
+  `
+    )
+    .run(name, description, price, stock);
 
-  const result = stmt.run(name, description, price, stock);
-  if (result.changes === 0)
-    throw Object.assign(new Error("Failed to insert product"), { status: 500 });
+  handleDBError(result.changes === 0, "Failed to insert product", 500);
 
-  res
-    .status(201)
-    .json({
-      message: "Product created",
-      product: { id: result.lastInsertRowid, name, description, price, stock },
-    });
+  res.status(201).json({
+    message: "Product created",
+    product: { id: result.lastInsertRowid, name, description, price, stock },
+  });
 });
 
 /* -------------------------------------------------------------------------- */
 /*                                    PUT                                     */
 /* -------------------------------------------------------------------------- */
 
-const updateProduct = asyncHandler(async (req, res, next) => {
+const updateProduct: RequestHandler = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { price, stock } = req.body;
 
-  if (price === undefined && stock === undefined) {
-    throw Object.assign(
-      new Error("At least one field required (price or stock)"),
-      { status: 400 }
-    );
-  }
+  handleDBError(
+    price === undefined && stock === undefined,
+    "At least one field required (price or stock)",
+    400
+  );
 
-  // Prepare update statement dynamically
-  const fields: string[] = [];
+  const fields = [];
   const values: (number | string)[] = [];
 
   if (price !== undefined) {
     const parsedPrice = Number(price);
-    if (isNaN(parsedPrice))
-      throw Object.assign(new Error("Invalid price"), { status: 400 });
+    handleDBError(isNaN(parsedPrice), "Invalid price", 400);
     fields.push("Price = ?");
     values.push(parsedPrice);
   }
 
   if (stock !== undefined) {
     const parsedStock = Number(stock);
-    if (isNaN(parsedStock))
-      throw Object.assign(new Error("Invalid stock"), { status: 400 });
+    handleDBError(isNaN(parsedStock), "Invalid stock", 400);
     fields.push("Stock = ?");
     values.push(parsedStock);
   }
 
   values.push(id);
   const sql = `UPDATE Products SET ${fields.join(", ")} WHERE Product_ID = ?;`;
+  const result = db.prepare(sql).run(...values);
 
-  const stmt = db.prepare(sql);
-  const result = stmt.run(...values);
-  if (result.changes === 0)
-    throw Object.assign(new Error("Product not found or no changes made"), {
-      status: 404,
-    });
+  handleDBError(
+    result.changes === 0,
+    "Product not found or no changes made",
+    404
+  );
 
   res.json({ message: "Product updated successfully" });
 });
@@ -134,12 +132,12 @@ const updateProduct = asyncHandler(async (req, res, next) => {
 /*                                  DELETE                                    */
 /* -------------------------------------------------------------------------- */
 
-const deleteProduct = asyncHandler(async (req, res, next) => {
-  const stmt = db.prepare(`DELETE FROM Products WHERE Product_ID = ?`);
-  const result = stmt.run(req.params.id);
+const deleteProduct: RequestHandler = asyncHandler(async (req, res) => {
+  const result = db
+    .prepare(`DELETE FROM Products WHERE Product_ID = ?`)
+    .run(req.params.id);
 
-  if (result.changes === 0)
-    throw Object.assign(new Error("Product not found"), { status: 404 }); // No match found
+  handleDBError(result.changes === 0, "Product not found", 404);
   res.json({ message: "Product deleted successfully" });
 });
 

@@ -1,26 +1,18 @@
 import { Request, Response, NextFunction } from "express";
 import colors from "colors";
 
-/**
- * Middleware to log incoming requests with method, URL, and timestamp.
- */
+// Middleware to log incoming requests
 const logger = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.method || !req.url) return next(); // Skip logging if request data is missing
-
-  const methodColors = {
+  const methodColors: Record<string, keyof colors.Color> = {
     GET: "green",
     POST: "yellow",
     PUT: "blue",
     DELETE: "red",
-  } as const;
+  };
 
-  const method = req.method.toUpperCase() as keyof typeof methodColors;
-  const logColor = colors[methodColors[method] || "white"];
-
+  const logColor = colors[methodColors[req.method] || "white"];
   const timestamp = new Date().toISOString();
-  const fullUrl = `${req.protocol}://${req.get("host") || "unknown"}${
-    req.originalUrl
-  }`;
+  const fullUrl = `${req.protocol}://${req.get("host")}${req.originalUrl}`;
 
   console.log(logColor(`[${timestamp}] ${req.method} ${fullUrl}`));
 
