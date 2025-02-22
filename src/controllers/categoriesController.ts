@@ -1,14 +1,7 @@
 import { RequestHandler } from "express";
 import { db } from "../database/db";
 import asyncHandler from "../middleware/asyncHandler";
-
-/* -------------------------------------------------------------------------- */
-/*                                Utility Function                            */
-/* -------------------------------------------------------------------------- */
-
-const handleDBError = (condition: boolean, message: string, status: number) => {
-  if (condition) throw Object.assign(new Error(message), { status });
-};
+import { handleDBError } from "../utils/errorUtils";
 
 /* -------------------------------------------------------------------------- */
 /*                                    GET                                     */
