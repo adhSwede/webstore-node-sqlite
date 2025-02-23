@@ -15,6 +15,7 @@ _2025-02-24_
   - [Felhantering vid datavalidering (`handleDBError.ts`)](#felhantering-vid-datavalidering-handledberrorts)
   - [Felhantering i asynkrona anrop (`asyncHandler.ts`)](#felhantering-i-asynkrona-anrop-asynchandlerts)
   - [Exempel på validering i en endpoint](#exempel-pa-validering-i-en-endpoint)
+- [Extra VG-funktionalitet](#extra-vg-funktionalitet)
 
 ## Databaser och SQL
 
@@ -36,7 +37,7 @@ Dessa entiteter är sammanlänkade genom `FOREIGN KEYS`.
 - **One-to-one (`1-1`)**: Kunder och adresser.
 - **Many-to-many (`>-<`)**: Produkter och kategorier.
 
-#### \*\*One-to-many (`1-<`)
+#### **One-to-many (`1-<`)**
 
 **Exempel:** En kund kan ha flera ordrar, men en order tillhör endast en kund.
 
@@ -73,7 +74,6 @@ FOREIGN KEY (Customer_ID) REFERENCES Customers(Customer_ID) ON DELETE CASCADE
 ```
 
 - `UNIQUE` - ingen kund kan ha fler än en adress.
-
 - `ON DELETE CASCADE`- Om en kund tas bort, tas även kundens adress bort.
 
 #### **Many-to-many (`>-<`)**
@@ -96,7 +96,6 @@ FOREIGN KEY (Category_ID) REFERENCES Categories(Category_ID) ON UPDATE CASCADE
 ```
 
 - Kopplingstabellen hanterar kopplingen mellan produkter och kategorier.
-
 - `ON DELETE CASCADE` - Om en produkt tas bort, raderas även dess koppling till kategorier.
 
 ## Felhantering
@@ -131,84 +130,29 @@ const errorHandler = (
 export default errorHandler;
 ```
 
-### Felhantering vid datavalidering (`handleDBError.ts`)
+## Extra VG-funktionalitet
+
+### Avancerad filtrering för produkter
+
+- **Vad gör det?**
+  - "Användaren kan söka efter produkter baserat på prisintervall, namn eller kategori."
 
 ##### Implementering:
 
-```ts
-export const handleDBError = (
-  condition: boolean,
-  message: string,
-  status: number
-) => {
-  if (condition) throw Object.assign(new Error(message), { status });
-};
+```sql
+SELECT * FROM Products WHERE Price BETWEEN ? AND ?;
 ```
 
-Exempel på användning:
+- **Exempelanrop i Postman:**
 
-```ts
-const id = parseInt(req.params.id, 10);
-handleDBError(isNaN(id), "Invalid ID", 400);
-```
+  - `GET /products?minPrice=100&maxPrice=500`
+  - "Detta hämtar alla produkter som kostar mellan 100 och 500."
 
-### Felhantering i asynkrona anrop (`asyncHandler.ts`)
+- **Varför är detta användbart?**
+  - "Ger användaren flexibilitet att filtrera produkter baserat på sina behov."
 
-##### Implementering:
+## Sammanfattning & Frågor
 
-```ts
-const asyncHandler =
-  <Req extends Request = Request, Res extends Response = Response>(
-    fn: (req: Req, res: Res, next: NextFunction) => Promise<any>
-  ) =>
-  (req: Req, res: Res, next: NextFunction) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-  };
-
-export default asyncHandler;
-```
-
-- Exempel på användning:
-
-```ts
-const getProductById: RequestHandler = asyncHandler(async (req, res, next) => {
-  const product = db
-    .prepare(`SELECT * FROM Products WHERE Product_ID = ?`)
-    .get(req.params.id);
-  handleDBError(!product, "Product not found", 404);
-  res.json(product);
-});
-```
-
-### Exempel på validering i en endpoint
-
-##### Implementering med validering:
-
-```ts
-const postProduct = asyncHandler(async (req, res, next) => {
-  const { name, price, stock } = req.body;
-
-  handleDBError(!name, "Name is required", 400);
-  handleDBError(
-    price === undefined || isNaN(price) || price <= 0,
-    "Invalid price",
-    400
-  );
-  handleDBError(
-    stock === undefined || isNaN(stock) || stock < 0,
-    "Invalid stock",
-    400
-  );
-
-  db.prepare(`INSERT INTO Products (Name, Price, Stock) VALUES (?, ?, ?);`).run(
-    name,
-    price,
-    stock
-  );
-  res.status(201).json({ message: "Product created" });
-});
-```
-
-- Om `name` saknas, skickas `"Name is required"` (HTTP 400).
-- Om `price` är negativt eller ogiltigt, skickas `"Invalid price"` (HTTP 400).
-- Om `stock` är mindre än `0`, skickas `"Invalid stock"` (HTTP 400).
+- "Sammanfattningsvis har jag byggt ett API med SQLite och Express."
+- "Jag har implementerat relationer, validering och extra funktionalitet."
+- **Frågor?**

@@ -1,6 +1,8 @@
-# TechGear: Database Project
+# **Presentation**: Database Project
 
 _2025-02-24_
+
+**_`Warning: This is an AI translated version of my carefully crafted presentation for school, so don't be surprised if something is weird language wise.`_**
 
 ## Table of Contents
 
@@ -15,6 +17,7 @@ _2025-02-24_
   - [Validation Error Handling (`handleDBError.ts`)](#validation-error-handling-handledberrorts)
   - [Asynchronous Error Handling (`asyncHandler.ts`)](#asynchronous-error-handling-asynchandlerts)
   - [Validation Example in an Endpoint](#validation-example-in-an-endpoint)
+- [Extra Functionality for Higher Grade](#extra-functionality-for-higher-grade)
 
 ## Database and SQL
 
@@ -129,84 +132,29 @@ const errorHandler = (
 export default errorHandler;
 ```
 
-### Validation Error Handling (`handleDBError.ts`)
+## Extra Functionality for Higher Grade
+
+### Advanced Filtering for Products
+
+- **What does it do?**
+  - "Users can search for products based on price range, name, or category."
 
 ##### Implementation:
 
-```ts
-export const handleDBError = (
-  condition: boolean,
-  message: string,
-  status: number
-) => {
-  if (condition) throw Object.assign(new Error(message), { status });
-};
+```sql
+SELECT * FROM Products WHERE Price BETWEEN ? AND ?;
 ```
 
-Example usage:
+- **Example API call in Postman:**
 
-```ts
-const id = parseInt(req.params.id, 10);
-handleDBError(isNaN(id), "Invalid ID", 400);
-```
+  - `GET /products?minPrice=100&maxPrice=500`
+  - "This retrieves all products priced between 100 and 500."
 
-### Asynchronous Error Handling (`asyncHandler.ts`)
+- **Why is this useful?**
+  - "Gives users flexibility to filter products based on their needs."
 
-##### Implementation:
+## Summary & Questions
 
-```ts
-const asyncHandler =
-  <Req extends Request = Request, Res extends Response = Response>(
-    fn: (req: Req, res: Res, next: NextFunction) => Promise<any>
-  ) =>
-  (req: Req, res: Res, next: NextFunction) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-  };
-
-export default asyncHandler;
-```
-
-- Example usage:
-
-```ts
-const getProductById: RequestHandler = asyncHandler(async (req, res, next) => {
-  const product = db
-    .prepare(`SELECT * FROM Products WHERE Product_ID = ?`)
-    .get(req.params.id);
-  handleDBError(!product, "Product not found", 404);
-  res.json(product);
-});
-```
-
-### Validation Example in an Endpoint
-
-##### Implementation with validation:
-
-```ts
-const postProduct = asyncHandler(async (req, res, next) => {
-  const { name, price, stock } = req.body;
-
-  handleDBError(!name, "Name is required", 400);
-  handleDBError(
-    price === undefined || isNaN(price) || price <= 0,
-    "Invalid price",
-    400
-  );
-  handleDBError(
-    stock === undefined || isNaN(stock) || stock < 0,
-    "Invalid stock",
-    400
-  );
-
-  db.prepare(`INSERT INTO Products (Name, Price, Stock) VALUES (?, ?, ?);`).run(
-    name,
-    price,
-    stock
-  );
-  res.status(201).json({ message: "Product created" });
-});
-```
-
-- If `name` is missing, it returns `"Name is required"` (HTTP 400).
-- If `price` is negative or invalid, it returns `"Invalid price"` (HTTP 400).
-- If `stock` is less than `0`, it returns `"Invalid stock"` (HTTP 400).
+- "In summary, I have built an API using SQLite and Express."
+- "I have implemented relationships, validation, and extra functionality."
+- **Any questions?**
