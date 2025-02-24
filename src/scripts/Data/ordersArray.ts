@@ -7,11 +7,32 @@ const ordersArray = [
     Status: "Shipped",
   },
   {
+    Customer_ID: 1,
+    Address_ID: 1,
+    OrderDate: "2024-02-20",
+    TotalAmount: 199.99,
+    Status: "Processing",
+  },
+  {
+    Customer_ID: 1,
+    Address_ID: 1,
+    OrderDate: "2024-02-22",
+    TotalAmount: 499.99,
+    Status: "Shipped",
+  },
+  {
     Customer_ID: 2,
     Address_ID: 2,
     OrderDate: "2024-02-10",
     TotalAmount: 999.99,
     Status: "Pending",
+  },
+  {
+    Customer_ID: 2,
+    Address_ID: 2,
+    OrderDate: "2024-02-18",
+    TotalAmount: 299.99,
+    Status: "Shipped",
   },
   {
     Customer_ID: 3,

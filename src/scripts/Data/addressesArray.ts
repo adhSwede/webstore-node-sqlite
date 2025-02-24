@@ -5,6 +5,7 @@ const addressesArray = [
     City: "Springfield",
     State: "IL",
     ZipCode: "62704",
+    Country: "USA",
   },
   {
     Customer_ID: 2,
@@ -12,6 +13,7 @@ const addressesArray = [
     City: "Los Angeles",
     State: "CA",
     ZipCode: "90001",
+    Country: "USA",
   },
   {
     Customer_ID: 3,
@@ -19,6 +21,7 @@ const addressesArray = [
     City: "New York",
     State: "NY",
     ZipCode: "10001",
+    Country: "USA",
   },
   {
     Customer_ID: 4,
@@ -26,6 +29,7 @@ const addressesArray = [
     City: "Austin",
     State: "TX",
     ZipCode: "73301",
+    Country: "USA",
   },
   {
     Customer_ID: 5,
@@ -33,6 +37,7 @@ const addressesArray = [
     City: "Denver",
     State: "CO",
     ZipCode: "80201",
+    Country: "USA",
   },
   {
     Customer_ID: 6,
@@ -40,6 +45,7 @@ const addressesArray = [
     City: "Seattle",
     State: "WA",
     ZipCode: "98101",
+    Country: "USA",
   },
   {
     Customer_ID: 7,
@@ -47,6 +53,7 @@ const addressesArray = [
     City: "Chicago",
     State: "IL",
     ZipCode: "60601",
+    Country: "USA",
   },
   {
     Customer_ID: 8,
@@ -54,6 +61,7 @@ const addressesArray = [
     City: "Miami",
     State: "FL",
     ZipCode: "33101",
+    Country: "USA",
   },
   {
     Customer_ID: 9,
@@ -61,6 +69,7 @@ const addressesArray = [
     City: "Phoenix",
     State: "AZ",
     ZipCode: "85001",
+    Country: "USA",
   },
   {
     Customer_ID: 10,
@@ -68,6 +77,7 @@ const addressesArray = [
     City: "Boston",
     State: "MA",
     ZipCode: "02101",
+    Country: "USA",
   },
 ];
 

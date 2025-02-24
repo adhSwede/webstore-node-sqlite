@@ -6,7 +6,6 @@ import ordersArray from "./Data/ordersArray";
 import orderDetailsArray from "./Data/orderDetailsArray";
 import reviewsArray from "./Data/reviewsArray";
 
-// Executes SQL queries inside a transaction with error handling
 const insertData = (query: string, params: any[], logMessage: string) => {
   try {
     db.prepare(query).run(...params);
@@ -18,9 +17,6 @@ const insertData = (query: string, params: any[], logMessage: string) => {
   }
 };
 
-/* -------------------------------------------------------------------------- */
-/*                                Insert Customers                            */
-/* -------------------------------------------------------------------------- */
 const insertCustomers = db.transaction(() => {
   customersArray.forEach((customer) => {
     insertData(
@@ -32,19 +28,17 @@ const insertCustomers = db.transaction(() => {
 });
 insertCustomers();
 
-/* -------------------------------------------------------------------------- */
-/*                                Insert Addresses                            */
-/* -------------------------------------------------------------------------- */
 const insertAddresses = db.transaction(() => {
   addressesArray.forEach((address) => {
     insertData(
-      `INSERT INTO Addresses (Customer_ID, Street, City, State, ZipCode) VALUES (?, ?, ?, ?, ?);`,
+      `INSERT INTO Addresses (Customer_ID, Street, City, State, ZipCode, Country) VALUES (?, ?, ?, ?, ?, ?);`,
       [
         address.Customer_ID,
         address.Street,
         address.City,
         address.State,
         address.ZipCode,
+        address.Country,
       ],
       `Added Address for Customer ${address.Customer_ID}`
     );
@@ -52,9 +46,6 @@ const insertAddresses = db.transaction(() => {
 });
 insertAddresses();
 
-/* -------------------------------------------------------------------------- */
-/*                                Insert Products                             */
-/* -------------------------------------------------------------------------- */
 const insertProducts = db.transaction(() => {
   productsArray.forEach((product) => {
     let manufacturer = db
@@ -107,19 +98,29 @@ const insertProducts = db.transaction(() => {
 });
 insertProducts();
 
-/* -------------------------------------------------------------------------- */
-/*                                Insert Orders                               */
-/* -------------------------------------------------------------------------- */
 const insertOrders = db.transaction(() => {
   ordersArray.forEach((order) => {
+    const address = db
+      .prepare(
+        `SELECT Address_ID FROM Addresses WHERE Customer_ID = ? ORDER BY Address_ID ASC LIMIT 1;`
+      )
+      .get(order.Customer_ID) as { Address_ID: number } | undefined;
+
+    if (!address) {
+      console.error(
+        `No address found for Customer_ID ${order.Customer_ID}. Skipping order.`
+      );
+      return;
+    }
+
     const result = db
       .prepare(
         `INSERT INTO Orders (Customer_ID, Address_ID, OrderDate, TotalAmount, Status) 
-      VALUES (?, ?, ?, ?, ?);`
+        VALUES (?, ?, ?, ?, ?);`
       )
       .run(
         order.Customer_ID,
-        order.Address_ID,
+        address.Address_ID,
         order.OrderDate,
         order.TotalAmount,
         order.Status
@@ -131,9 +132,6 @@ const insertOrders = db.transaction(() => {
 });
 insertOrders();
 
-/* -------------------------------------------------------------------------- */
-/*                             Insert Order Details                           */
-/* -------------------------------------------------------------------------- */
 const insertOrderDetails = db.transaction(() => {
   orderDetailsArray.forEach((orderDetail) => {
     insertData(
@@ -153,9 +151,6 @@ const insertOrderDetails = db.transaction(() => {
 });
 insertOrderDetails();
 
-/* -------------------------------------------------------------------------- */
-/*                                Insert Reviews                              */
-/* -------------------------------------------------------------------------- */
 const insertReviews = db.transaction(() => {
   reviewsArray.forEach((review) => {
     insertData(
