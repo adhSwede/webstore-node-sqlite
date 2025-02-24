@@ -29,12 +29,14 @@ const getCategoryStats: RequestHandler = asyncHandler(async (_, res) => {
   const stats = db
     .prepare(
       `
-    SELECT c.Name AS Category, COUNT(p.Product_ID) AS ProductCount, ROUND(AVG(p.Price), 2) AS AvgPrice
-    FROM Categories c
-    LEFT JOIN ProductCategories pc ON c.Category_ID = pc.Category_ID
-    LEFT JOIN Products p ON pc.Product_ID = p.Product_ID
-    GROUP BY c.Category_ID;
-  `
+      SELECT 
+        c.Name AS Category, 
+        COUNT(p.Product_ID) AS ProductCount, 
+        ROUND(COALESCE(AVG(p.Price), 0), 2) AS AvgPrice
+      FROM Categories c
+      LEFT JOIN Products p ON c.Category_ID = p.Category_ID
+      GROUP BY c.Category_ID;
+      `
     )
     .all();
 
