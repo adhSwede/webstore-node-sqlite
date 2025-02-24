@@ -72,20 +72,19 @@ const insertProducts = db.transaction(() => {
 
     const productResult = db
       .prepare(
-        `INSERT INTO Products (Name, Description, Price, Stock) VALUES (?, ?, ?, ?);`
+        `INSERT INTO Products (Name, Description, Price, Stock, Category_ID) 
+         VALUES (?, ?, ?, ?, ?);`
       )
-      .run(product.name, product.description, product.price, product.stock);
+      .run(
+        product.name,
+        product.description,
+        product.price,
+        product.stock,
+        category?.Category_ID
+      );
 
     const productId = productResult.lastInsertRowid as number;
     console.log(`Added Product: ${product.name} (ID: ${productId})`);
-
-    if (category) {
-      insertData(
-        `INSERT INTO ProductCategories (Product_ID, Category_ID) VALUES (?, ?);`,
-        [productId, category.Category_ID],
-        `Linked Product ${productId} to Category ${category.Category_ID}`
-      );
-    }
 
     if (manufacturer) {
       insertData(

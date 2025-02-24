@@ -16,9 +16,8 @@ const executeSQL = (query: string): boolean => {
 
 const createTables = () => {
   try {
-    db.exec("BEGIN TRANSACTION;"); // Start transaction
+    db.exec("BEGIN TRANSACTION;");
 
-    // Customers & Addresses
     executeSQL(`
       CREATE TABLE IF NOT EXISTS Customers (
         Customer_ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,7 +41,6 @@ const createTables = () => {
       );
     `);
 
-    // Orders
     executeSQL(`
       CREATE TABLE IF NOT EXISTS Orders (
         Order_ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,24 +53,6 @@ const createTables = () => {
         FOREIGN KEY (Address_ID) REFERENCES Addresses(Address_ID) ON DELETE CASCADE
       );
     `);
-
-    // Products, Categories & Manufacturers
-    executeSQL(`
-      CREATE TABLE IF NOT EXISTS Products (
-        Product_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        Name TEXT NOT NULL,
-        Description TEXT,
-        Price REAL CHECK (Price > 0) NOT NULL,
-        Stock INTEGER CHECK (Stock >= 0) NOT NULL
-      );
-    `);
-
-    executeSQL(
-      `CREATE INDEX IF NOT EXISTS idx_products_name ON Products(Name);`
-    );
-    executeSQL(
-      `CREATE INDEX IF NOT EXISTS idx_products_description ON Products(Description);`
-    );
 
     executeSQL(`
       CREATE TABLE IF NOT EXISTS Categories (
@@ -90,7 +70,6 @@ const createTables = () => {
       );
     `);
 
-    // Many-to-Many Relationships
     executeSQL(`
       CREATE TABLE IF NOT EXISTS ProductCategories (
         Product_ID INTEGER NOT NULL,
@@ -125,7 +104,6 @@ const createTables = () => {
       );
     `);
 
-    // Reviews
     executeSQL(`
       CREATE TABLE IF NOT EXISTS Reviews (
         Review_ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -140,13 +118,32 @@ const createTables = () => {
       );
     `);
 
-    db.exec("COMMIT;"); // Commit transaction if all queries succeed
+    executeSQL(`
+      CREATE TABLE IF NOT EXISTS Products (
+        Product_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        Name TEXT NOT NULL,
+        Description TEXT,
+        Price REAL CHECK (Price > 0) NOT NULL,
+        Stock INTEGER CHECK (Stock >= 0) NOT NULL,
+        Category_ID INTEGER,
+        FOREIGN KEY (Category_ID) REFERENCES Categories(Category_ID) ON DELETE SET NULL
+      );
+    `);
+
+    executeSQL(
+      `CREATE INDEX IF NOT EXISTS idx_products_name ON Products(Name);`
+    );
+    executeSQL(
+      `CREATE INDEX IF NOT EXISTS idx_products_description ON Products(Description);`
+    );
+
+    db.exec("COMMIT;");
     console.log("All tables created successfully!");
   } catch (err) {
-    db.exec("ROLLBACK;"); // Rollback if any query fails
+    db.exec("ROLLBACK;");
     console.error("Error creating tables, transaction rolled back:", err);
   } finally {
-    db.close(); // Ensure DB is closed only after everything runs
+    db.close();
   }
 };
 

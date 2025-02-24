@@ -8,8 +8,27 @@ import { handleDBError } from "../utils/errorUtils";
 /* -------------------------------------------------------------------------- */
 
 const getProducts: RequestHandler = asyncHandler(async (req, res) => {
-  let query = `SELECT * FROM Products WHERE 1=1`;
+  let query = `
+    SELECT 
+      p.Product_ID, 
+      p.Name AS Product_Name, 
+      p.Stock, 
+      p.Price,
+      c.Name AS Category_Name,  
+      GROUP_CONCAT(m.Name, ', ') AS Manufacturer_Names  
+    FROM Products p
+    LEFT JOIN Categories c ON p.Category_ID = c.Category_ID
+    LEFT JOIN ProductManufacturers pm ON p.Product_ID = pm.Product_ID
+    LEFT JOIN Manufacturers m ON pm.Manufacturer_ID = m.Manufacturer_ID
+  `;
+
   const values: any[] = [];
+  const conditions: string[] = [];
+
+  const addFilter = (condition: string, value: any) => {
+    conditions.push(condition);
+    values.push(value);
+  };
 
   const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
   const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
@@ -17,21 +36,33 @@ const getProducts: RequestHandler = asyncHandler(async (req, res) => {
   handleDBError(minPrice !== null && isNaN(minPrice), "Invalid minPrice", 400);
   handleDBError(maxPrice !== null && isNaN(maxPrice), "Invalid maxPrice", 400);
 
-  if (minPrice !== null) {
-    query += " AND Price >= ?";
-    values.push(minPrice);
+  if (minPrice !== null) addFilter("p.Price >= ?", minPrice);
+  if (maxPrice !== null) addFilter("p.Price <= ?", maxPrice);
+
+  // conditions only if filter input.
+  if (conditions.length) {
+    query += " WHERE " + conditions.join(" AND ");
   }
-  if (maxPrice !== null) {
-    query += " AND Price <= ?";
-    values.push(maxPrice);
-  }
+
+  query += " GROUP BY p.Product_ID";
 
   res.json(db.prepare(query).all(...values));
 });
 
 const getProductById: RequestHandler = asyncHandler(async (req, res) => {
   const product = db
-    .prepare(`SELECT * FROM Products WHERE Product_ID = ?`)
+    .prepare(
+      `SELECT 
+        p.Product_ID, 
+        p.Name, 
+        p.Description, 
+        p.Price, 
+        p.Stock, 
+        c.Name AS Category_Name 
+      FROM Products p
+      LEFT JOIN Categories c ON p.Category_ID = c.Category_ID
+      WHERE p.Product_ID = ?`
+    )
     .get(Number(req.params.id));
 
   handleDBError(!product, "Product not found", 404);
@@ -42,11 +73,22 @@ const getProductsByName: RequestHandler = asyncHandler(async (req, res) => {
   const searchTerm = req.query.name?.toString() || "";
   handleDBError(!searchTerm, "Search term is required", 400);
 
-  res.json(
-    db
-      .prepare(`SELECT * FROM Products WHERE Name LIKE ?`)
-      .all(`%${searchTerm}%`)
-  );
+  const products = db
+    .prepare(
+      `SELECT 
+        p.Product_ID, 
+        p.Name, 
+        p.Description, 
+        p.Price, 
+        p.Stock, 
+        c.Name AS Category_Name 
+      FROM Products p
+      LEFT JOIN Categories c ON p.Category_ID = c.Category_ID
+      WHERE p.Name LIKE ?`
+    )
+    .all(`%${searchTerm}%`);
+
+  res.json(products);
 });
 
 /* -------------------------------------------------------------------------- */
@@ -54,26 +96,48 @@ const getProductsByName: RequestHandler = asyncHandler(async (req, res) => {
 /* -------------------------------------------------------------------------- */
 
 const postProduct: RequestHandler = asyncHandler(async (req, res) => {
-  const { name, description, price, stock } = req.body;
+  const { name, description, price, stock, category } = req.body;
+
   handleDBError(
-    !name || !description || price === undefined || stock === undefined,
-    "All fields are required",
+    !name ||
+      !description ||
+      price === undefined ||
+      stock === undefined ||
+      !category,
+    "All fields, including category, are required",
     400
   );
 
+  let categoryRow = db
+    .prepare(`SELECT Category_ID FROM Categories WHERE Name = ?;`)
+    .get(category) as { Category_ID: number } | undefined;
+
+  if (!categoryRow) {
+    const categoryResult = db
+      .prepare(`INSERT INTO Categories (Name) VALUES (?);`)
+      .run(category);
+    categoryRow = { Category_ID: categoryResult.lastInsertRowid as number };
+  }
+
   const result = db
     .prepare(
-      `
-    INSERT INTO Products (Name, Description, Price, Stock) VALUES (?, ?, ?, ?)
-  `
+      `INSERT INTO Products (Name, Description, Price, Stock, Category_ID) 
+       VALUES (?, ?, ?, ?, ?)`
     )
-    .run(name, description, price, stock);
+    .run(name, description, price, stock, categoryRow.Category_ID);
 
   handleDBError(result.changes === 0, "Failed to insert product", 500);
 
   res.status(201).json({
     message: "Product created",
-    product: { id: result.lastInsertRowid, name, description, price, stock },
+    product: {
+      id: result.lastInsertRowid,
+      name,
+      description,
+      price,
+      stock,
+      category: category,
+    },
   });
 });
 
