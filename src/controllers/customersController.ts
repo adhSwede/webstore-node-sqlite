@@ -59,7 +59,6 @@ const updateCustomer: RequestHandler = asyncHandler(async (req, res) => {
     400
   );
 
-  // Update contact details
   if (Email || Phone) {
     db.prepare(
       `

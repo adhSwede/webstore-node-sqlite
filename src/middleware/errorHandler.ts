@@ -9,7 +9,7 @@ const errorHandler = (
 ) => {
   console.error("Error:", err.message || err);
 
-  const statusCode = err.status || 500; // Default to 500 if status is missing
+  const statusCode = err.status || 500; // Default to 500 if no status.
 
   res
     .status(statusCode)

@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import colors from "colors";
 
-// Middleware to log incoming requests
+// Middleware to log incoming requests.
+// I used "colors" package to differentiate different calls.
 const logger = (req: Request, res: Response, next: NextFunction) => {
   const methodColors: Record<string, keyof colors.Color> = {
     GET: "green",
